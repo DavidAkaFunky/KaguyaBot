@@ -23,7 +23,7 @@ class Embed (Cog):
 
     async def get_reaction(self, msg, index, length):
         def check(reaction, user):
-            return str(reaction.emoji) in ["⬅", "➡"]
+            return str(reaction.emoji) in ["⬅", "➡"] and reaction.message.id == msg.id
         reaction, user = await self.bot.wait_for('reaction_add', check=check)
         if str(reaction.emoji) == "➡":
             index = (index + 1) % length
@@ -124,15 +124,18 @@ class Embed (Cog):
             for el in nicknames:
                 res += el + ", "
             return res[:-2]
+
         def get_about(character):
             res = ""
             for el in re.split(r"[.\n]", character["about"]):
                 if el == "":
                     continue
                 el += ". "
-                if len(res) + len(el) >= 1025:
+                if len(res) + len(el) > 1025:
                     return res[:-1]
                 res += el
+            return res[:-1] if res != "" else "N/A"
+
         embed = discord.Embed(title = character["name"], color = 0x26448f)
         embed.add_field(name="Nickname", value=get_nicknames(character["nicknames"]))
         embed.add_field(name="Favourites", value=character["favorites"])
