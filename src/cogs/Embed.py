@@ -181,7 +181,8 @@ class Embed (Cog):
         for key in lst:
             embed.add_field(name=key, value=lst[key] if lst[key] != None else "N/A")
         embed.add_field(name="‎", value="[MyAnimeList link]({})".format(data[0][2]), inline=False)
-        embed.set_image(url=data[0][3])
+        if data[0][3] != None:
+            embed.set_image(url=data[0][3])
         embed.set_footer(text="Click left for {}\nClick right for {}".format(options[(index-1)%length], options[(index+1)%length]), icon_url = ctx.author.avatar_url)
         await msg.edit(embed=embed)
 
@@ -197,7 +198,7 @@ class Embed (Cog):
     @cog_ext.cog_slash(name="user", guild_ids=eval(environ["GUILDS"]))
     async def get_user(self, ctx, username):
         (b, r) = await make_request("https://api.jikan.moe/v4/users/{}".format(username))
-        if not b:
+        if not (b and "data" in json.loads(r.content)):
             return
         user = json.loads(r.content)["data"]
         (b, r) = await make_request("https://api.jikan.moe/v4/users/{}/statistics".format(username))
