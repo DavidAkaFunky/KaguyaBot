@@ -109,6 +109,8 @@ class Embed (Cog):
         """Show username's manga list"""
         await self.get_list(ctx, MangaData(), username)
     
+    ########################## CHARACTER COMMAND ##########################
+
     async def get_character_pic_embed(self, ctx, embed, msg, pics, index, length):
         embed.set_image(url=pics[index])
         embed.set_footer(text="Picture {} of {}".format(index+1, length), icon_url = ctx.author.avatar_url)
@@ -151,7 +153,10 @@ class Embed (Cog):
         (b, r) = await make_request("https://api.jikan.moe/v4/characters?q={}&sfw&order_by=popularity".format(name))
         if not b:
             return
-        character = json.loads(r.content)["data"][0]
+        try:
+            character = json.loads(r.content)["data"][0]
+        except IndexError:
+            return
         (b, r) = await make_request("https://api.jikan.moe/v4/characters/{}/pictures".format(character["mal_id"]))
         if not b:
             return
@@ -165,7 +170,7 @@ class Embed (Cog):
         await self.get_character_embed(ctx, character, pics)
 
 
-    ########################## USER COMMANDS ##########################
+    ########################## USER COMMAND ##########################
 
     async def get_user_page_embed(self, ctx, msg, data, index, length):
         def get_colour(gender):
@@ -198,9 +203,11 @@ class Embed (Cog):
     @cog_ext.cog_slash(name="user", guild_ids=eval(environ["GUILDS"]))
     async def get_user(self, ctx, username):
         (b, r) = await make_request("https://api.jikan.moe/v4/users/{}".format(username))
-        if not (b and "data" in json.loads(r.content)):
+        if not b:
             return
         user = json.loads(r.content)["data"]
+        if user == []:
+            return
         (b, r) = await make_request("https://api.jikan.moe/v4/users/{}/statistics".format(username))
         if not b:
             return
