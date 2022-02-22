@@ -61,7 +61,8 @@ class Embed (Cog):
     @cog_ext.cog_slash(name="animelist", guild_ids=eval(environ["GUILDS"]))
     async def get_anime_list(self, ctx, username):
         """Send embed anime list"""
-        await self.fetch_data(ctx, AnimeData(), username) 
+        await self.fetch_data(ctx, AnimeData(), username)
+        
 
 def setup(bot: Bot):
     bot.add_cog(Embed(bot))

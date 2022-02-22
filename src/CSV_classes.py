@@ -1,20 +1,21 @@
 from abc import ABC
 import json, requests, discord
+from aio_jikan import AioJikan
 
 class Data(ABC):
 
-    def request(self, username):
+    async def fetch_data(self, ctx, data, csv, username):
+        self.table = []
+        page = 1
         async with AioJikan() as aio_jikan:
-            return aio_jikan.user(username=username, request=self.info["list"], parameters={'page': page})
-            requests.get("https://api.jikan.moe/v4/users/{}/{}".format(username, self.info["list"]), timeout = 6)
-
-    def write_to_csv(self, csv_writer, content):
-        csv_writer.writerow(self.header)
-        for entry in json.loads(content)["data"]:
-            csv_writer.writerow(self.get_element(entry)[0])
+            table = aio_jikan.user(username=username, request=self.info["list"], parameters={'page': page})
+            self.table.append(table)
+            if len(table) < 300:
+                return
+            page += 1
 
     def get_header(self):
-        return self.header 
+        return self.header
 
     def get_genres(self, entry):
         genres = ""
