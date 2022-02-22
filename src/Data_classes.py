@@ -4,18 +4,18 @@ from Requests import make_request
 
 class Data(ABC):
 
-    def fetch_search(self, name) -> bool:
-        (b, r) = make_request("https://api.jikan.moe/v4/{}?q={}&sfw&order_by=popularity".format(self.info["type"], name))
+    async def fetch_search(self, name) -> bool:
+        (b, r) = await make_request("https://api.jikan.moe/v4/{}?q={}&sfw&order_by=popularity".format(self.info["type"], name))
         if not b:
             return False
         self.search = json.loads(r.content)["data"]
         return True
 
-    def fetch_list(self, username) -> bool:
+    async def fetch_list(self, username) -> bool:
         self.table = []
         page = 1
         while True:
-            (b, r) = make_request("https://api.jikan.moe/v4/users/{}/{}?page={}".format(username, self.info["list"], page))
+            (b, r) = await make_request("https://api.jikan.moe/v4/users/{}/{}?page={}".format(username, self.info["list"], page))
             if not b:
                 return False
             table = json.loads(r.content)["data"]

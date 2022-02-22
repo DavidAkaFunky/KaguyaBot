@@ -1,7 +1,7 @@
 import requests
 from time import sleep
 
-def make_request(url) -> bool:
+async def make_request(url):
     for i in range(3):
         try:
             r = requests.get(url, timeout = 6)
@@ -12,4 +12,5 @@ def make_request(url) -> bool:
         if i < 2:
             print ("Trying again...")
             sleep(1)
+    await ctx.send("We couldn't fetch the data from the API. Please try again later!", hidden = True)
     return (False, None)   
