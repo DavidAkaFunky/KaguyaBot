@@ -1,0 +1,2 @@
+# MALBot
+MyAnimeList bot
