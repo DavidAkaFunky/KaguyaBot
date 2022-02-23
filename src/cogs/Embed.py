@@ -180,6 +180,7 @@ class Embed (Cog):
         for i in range(length):
             await msg.add_reaction(emojis[i])
         reaction, user = await self.bot.wait_for('reaction_add', check=check)
+        await msg.remove_reaction(reaction.emoji, user)
         await msg.delete()
         return emojis.index(reaction.emoji)
 
