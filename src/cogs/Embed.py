@@ -109,6 +109,7 @@ class Embed (Cog):
         """Show username's manga list"""
         await self.get_list(ctx, MangaData(), username)
     
+
     ########################## CHARACTER COMMAND ##########################
 
     async def get_character_pic_embed(self, ctx, embed, msg, pics, index, length):
@@ -129,8 +130,11 @@ class Embed (Cog):
             res = ""
             for el in re.split(r"[.\n]", character["about"]):
                 if el == "":
-                    continue
-                el += ". "
+                    if res[-1] == "\n":
+                        continue
+                    el += "\n"
+                else:
+                    el += ". "
                 if len(res) + len(el) > 1025:
                     return res[:-1]
                 res += el
@@ -150,16 +154,7 @@ class Embed (Cog):
             await self.get_character_pic_embed(ctx, embed, msg, pics, index, length)
             index = await self.get_reaction(msg, index, length)
 
-    @cog_ext.cog_slash(name="character", guild_ids=eval(environ["GUILDS"]))
-    async def get_character(self, ctx, name):
-        """Search for anime/manga character"""
-        (b, r) = await make_request("https://api.jikan.moe/v4/characters?q={}&sfw&order_by=popularity".format(name))
-        if not b:
-            return
-        try:
-            character = json.loads(r.content)["data"][0]
-        except IndexError:
-            return
+    async def get_character(self, ctx, character):
         (b, r) = await make_request("https://api.jikan.moe/v4/characters/{}/pictures".format(character["mal_id"]))
         if not b:
             return
@@ -172,6 +167,38 @@ class Embed (Cog):
         pics = [main] + pics
         await self.get_character_embed(ctx, character, pics)
 
+    async def get_character_list_embed(self, ctx, characters, length):
+        def check(reaction, user):
+            return reaction.emoji in emojis and reaction.message.id == msg.id
+        emojis = [u"\u0030" + u"\u20E3", u"\u0031" + u"\u20E3", u"\u0032" + u"\u20E3", u"\u0033" + u"\u20E3", u"\u0034" + u"\u20E3",
+                  u"\u0035" + u"\u20E3", u"\u0036" + u"\u20E3", u"\u0037" + u"\u20E3", u"\u0038" + u"\u20E3", u"\u0039" + u"\u20E3"]
+        embed = discord.Embed(title = "React with the number of the character of your choice:", color = 0x26448f)
+        for i in range(length):
+            embed.add_field(name="Option {}".format(i), value=characters[i]["name"], inline = False)
+        embed.set_footer(text="If you can't find the character you want, try a more specific search!", icon_url = ctx.author.avatar_url)
+        msg = await ctx.send(embed=embed)
+        for i in range(length):
+            await msg.add_reaction(emojis[i])
+        reaction, user = await self.bot.wait_for('reaction_add', check=check)
+        await msg.delete()
+        return emojis.index(reaction.emoji)
+
+    @cog_ext.cog_slash(name="character", guild_ids=eval(environ["GUILDS"]))
+    async def get_character_list(self, ctx, name):
+        """Search for anime/manga character"""
+        (b, r) = await make_request("https://api.jikan.moe/v4/characters?q={}&order_by=favorites&sort=desc".format(name))
+        if not b:
+            return
+        characters = json.loads(r.content)["data"]
+        length = min(10,len(characters))
+        if length == 0:
+            return
+        elif length == 1:
+            character = characters[0]
+        else:
+            index = await self.get_character_list_embed(ctx, characters[:length], length)
+            character = characters[index]
+        await self.get_character(ctx, character)
 
     ########################## USER COMMAND ##########################
 
