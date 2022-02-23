@@ -23,7 +23,7 @@ class Embed (Cog):
 
     async def get_reaction(self, msg, index, length):
         def check(reaction, user):
-            return str(reaction.emoji) in ["⬅", "➡"] and reaction.message.id == msg.id
+            return str(reaction.emoji) in ["⬅", "➡"] and reaction.message.id == msg.id and user != self.bot.user
         reaction, user = await self.bot.wait_for('reaction_add', check=check)
         if str(reaction.emoji) == "➡":
             index = (index + 1) % length
@@ -169,7 +169,7 @@ class Embed (Cog):
 
     async def get_character_list_embed(self, ctx, characters, length):
         def check(reaction, user):
-            return reaction.emoji in emojis and reaction.message.id == msg.id
+            return reaction.emoji in emojis and reaction.message.id == msg.id and user != self.bot.user
         emojis = [u"\u0030" + u"\u20E3", u"\u0031" + u"\u20E3", u"\u0032" + u"\u20E3", u"\u0033" + u"\u20E3", u"\u0034" + u"\u20E3",
                   u"\u0035" + u"\u20E3", u"\u0036" + u"\u20E3", u"\u0037" + u"\u20E3", u"\u0038" + u"\u20E3", u"\u0039" + u"\u20E3"]
         embed = discord.Embed(title = "React with the number of the character of your choice:", color = 0x26448f)
