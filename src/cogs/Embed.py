@@ -14,11 +14,12 @@ class Embed (Cog):
 
     ########################## MISCELLANEOUS ##########################
 
-    async def get_empty_embed(self, ctx):
+    async def get_empty_embed(self, ctx, arrow_flag):
         embed = discord.Embed(title = "‎")
         msg = await ctx.send(embed=embed)
-        await msg.add_reaction("⬅")
-        await msg.add_reaction("➡")
+        if arrow_flag:
+            await msg.add_reaction("⬅")
+            await msg.add_reaction("➡")
         return msg
 
     async def get_reaction(self, msg, index, length):
@@ -48,7 +49,7 @@ class Embed (Cog):
 
     async def get_search_embed(self, ctx, data, username):    
         search = data.get_search()
-        msg = await self.get_empty_embed(ctx)
+        msg = await self.get_empty_embed(ctx, True)
         index = 0
         length = len(search)
         while True:
@@ -87,7 +88,7 @@ class Embed (Cog):
 
     async def get_list_embed(self, ctx, data, username):      
         table = data.get_table()
-        msg = await self.get_empty_embed(ctx)
+        msg = await self.get_empty_embed(ctx, True)
         index = 0
         length = len(table)
         while True:
@@ -117,7 +118,7 @@ class Embed (Cog):
         embed.set_footer(text="Picture {} of {}".format(index+1, length), icon_url = ctx.author.avatar_url)
         await msg.edit(embed=embed)
 
-    async def get_character_embed(self, ctx, character, pics):
+    async def get_character_embed(self, ctx, msg, character, pics):
         def get_nicknames(nicknames):
             res = ""
             if nicknames == []:
@@ -140,7 +141,7 @@ class Embed (Cog):
         embed.add_field(name="Favourites", value=character["favorites"])
         embed.add_field(name="About", value=get_about(character), inline=False)
         embed.add_field(name="‎", value="[MyAnimeList link]({})".format(character["url"]), inline=False)
-        msg = await ctx.send(embed=embed)
+        await msg.edit(embed=embed)
         await msg.add_reaction("⬅")
         await msg.add_reaction("➡")
         index = 0
@@ -149,7 +150,7 @@ class Embed (Cog):
             await self.get_character_pic_embed(ctx, embed, msg, pics, index, length)
             index = await self.get_reaction(msg, index, length)
 
-    async def get_character(self, ctx, character):
+    async def get_character(self, ctx, msg, character):
         (b, r) = await make_request("https://api.jikan.moe/v4/characters/{}/pictures".format(character["mal_id"]))
         if not b:
             return
@@ -160,7 +161,7 @@ class Embed (Cog):
         except:
             pass
         pics = [main] + pics
-        await self.get_character_embed(ctx, character, pics)
+        await self.get_character_embed(ctx, msg, character, pics)
 
     async def get_character_list_embed(self, ctx, characters, length):
         def check(reaction, user):
@@ -175,9 +176,8 @@ class Embed (Cog):
         for i in range(length):
             await msg.add_reaction(emojis[i])
         reaction, user = await self.bot.wait_for('reaction_add', check=check)
-        await msg.remove_reaction(reaction.emoji, user)
-        await msg.delete()
-        return emojis.index(reaction.emoji)
+        await msg.clear_reactions()
+        return msg, emojis.index(reaction.emoji)
 
     @cog_ext.cog_slash(name="character", guild_ids=eval(environ["GUILDS"]))
     async def get_character_list(self, ctx, name):
@@ -190,11 +190,12 @@ class Embed (Cog):
         if length == 0:
             return
         elif length == 1:
+            msg = await self.get_empty_embed(ctx, False)
             character = characters[0]
         else:
-            index = await self.get_character_list_embed(ctx, characters[:length], length)
+            msg, index = await self.get_character_list_embed(ctx, characters[:length], length)
             character = characters[index]
-        await self.get_character(ctx, character)
+        await self.get_character(ctx, msg, character)
 
     ########################## USER COMMAND ##########################
 
@@ -219,7 +220,7 @@ class Embed (Cog):
 
     async def get_user_embed(self, ctx, user, anime, manga):    
         data = (user, anime, manga)
-        msg = await self.get_empty_embed(ctx)
+        msg = await self.get_empty_embed(ctx, True)
         index = 0
         length = len(data)
         while True:
