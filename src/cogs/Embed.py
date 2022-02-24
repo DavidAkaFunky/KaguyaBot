@@ -128,17 +128,12 @@ class Embed (Cog):
 
         def get_about(character):
             res = ""
-            for el in re.split(r"[.\n]", character["about"]):
-                if el == "":
-                    if res[-1] == "\n":
-                        continue
-                    el += "\n"
-                else:
-                    el += ". "
+            for el in character["about"].split("."):
+                el += ". "
                 if len(res) + len(el) > 1025:
-                    return res[:-1]
+                    return res[:-2]
                 res += el
-            return res[:-1] if res != "" else "N/A"
+            return res[:-2] if res != "" else "N/A"
 
         embed = discord.Embed(title = character["name"], color = 0x26448f)
         embed.add_field(name="Nickname", value=get_nicknames(character["nicknames"]))
