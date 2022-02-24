@@ -79,7 +79,7 @@ class AnimeData(Data):
                  entry["status"],
                  season,
                  entry["source"],
-                 entry["duration"],
+                 entry["duration"] if entry["duration"] != None else "TBA",
                  self.get_genres(entry)],
                  entry["url"],
                  entry["images"]["jpg"]["large_image_url"])
