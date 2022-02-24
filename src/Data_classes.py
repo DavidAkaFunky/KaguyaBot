@@ -88,8 +88,8 @@ class AnimeData(Data):
 class MangaData(Data):
     def __init__(self) -> None:
         self.status = {1: ("Reading", 0x2db039), 2: ("Completed", 0x26448f), 3: ("On Hold", 0xf9d457), 4: ("Dropped", 0xa12f31), 6: ("PTR", 0xc3c3c3)}
-        self.search_header = ["Title", "Status", "Score", "Chaps. read", "Vols. read", "Start date", "End date", "Type", "Genres"]
-        self.entry = ["Title", "Avg. score", "Type", "Chapters", "Volumes", "Status", "Genres"]
+        self.header = ["Title", "Status", "Score", "Chaps. read", "Vols. read", "Start date", "End date", "Type", "Genres"]
+        self.search_header = ["Title", "Avg. score", "Type", "Chapters", "Volumes", "Status", "Genres"]
         self.info = {"type": "manga", "list": "mangalist"}
 
     def get_element(self, entry):
