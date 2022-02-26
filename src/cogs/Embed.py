@@ -1,31 +1,34 @@
-import discord, json, re
-from Data_classes import AnimeData, MangaData
+import discord
+from DataClasses import AnimeData, MangaData, User, Character
 from discord.ext.commands import Cog, Bot
 from os import environ
 from discord_slash import cog_ext
 from Requests import make_request
-from datetime import datetime
 
 class Embed (Cog):
 
     def __init__(self,bot):
-        self.bot = bot   
+        self.bot = bot
+        self.anime = AnimeData()
+        self.manga = MangaData()
+        self.user = User()
+        self.character = Character()
 
 
     ########################## MISCELLANEOUS ##########################
 
     async def get_empty_embed(self, ctx, arrow_flag):
         embed = discord.Embed(title = "‎")
-        msg = await ctx.send(embed=embed)
+        msg = await ctx.send(embed = embed)
         if arrow_flag:
             await msg.add_reaction("⬅")
             await msg.add_reaction("➡")
         return msg
 
-    async def get_reaction(self, msg, index, length):
+    async def get_arrow_reaction(self, msg, index, length):
         def check(reaction, user):
             return str(reaction.emoji) in ["⬅", "➡"] and reaction.message.id == msg.id and user != self.bot.user
-        reaction, user = await self.bot.wait_for('reaction_add', check=check)
+        reaction, user = await self.bot.wait_for('reaction_add', check = check)
         if str(reaction.emoji) == "➡":
             index = (index + 1) % length
             await msg.remove_reaction("➡", user)
@@ -34,242 +37,168 @@ class Embed (Cog):
             await msg.remove_reaction("⬅", user)
         return index
     
+    async def create_embed(self, title, data, url = None, colour = 0x26448f, image = None):
+        embed = discord.Embed(title = title, color = colour)
+        for key in data:
+            embed.add_field(name = key, value = data[key])
+        if url != None:
+            embed.add_field(name = "‎", value = "[MyAnimeList link]({})".format(url), inline = False)
+        if image != None:
+            embed.set_image(url = image)
+        return embed
+
 
     ########################## INDIVIDUAL ENTRY COMMANDS ##########################
 
-    async def get_search_entry_embed(self, ctx, msg, data, content, username, index, length):
-        entry = data.get_entry(content[index])
-        embed = discord.Embed(title = entry[0][0], color = 0x26448f if content[index]["status"].split()[0] == "Finished" else 0x2db039)
-        for i in range(1, len(entry[0])):
-            embed.add_field(name=data.get_search_header()[i], value=entry[0][i] if entry[0][i] != "" else "N/A")
-        embed.add_field(name="‎", value="[MyAnimeList link]({})".format(entry[1]), inline=False)
-        embed.set_image(url=entry[2])
-        embed.set_footer(text="Search result {} of {}".format(index+1, length), icon_url = ctx.author.avatar_url)
-        await msg.edit(embed=embed)
+    async def get_search_entry_embed(self, ctx, msg, data, content, name, index, length):
+        entry = data.get_search_entry(content[index])
+        embed = await self.create_embed(entry["Title"], entry["Data"], url = entry["URL"], colour = entry["Colour"], image = entry["Image"])
+        embed.set_footer(text = "Search result {} of {}".format(index+1, length), icon_url = ctx.author.avatar_url)
+        await msg.edit(embed = embed)
 
-    async def get_search_embed(self, ctx, data, username):    
-        search = data.get_search()
+    async def get_search_embed(self, ctx, data, search, name):    
         msg = await self.get_empty_embed(ctx, True)
         index = 0
         length = len(search)
         while True:
-            await self.get_search_entry_embed(ctx, msg, data, search, username, index, length)
-            index = await self.get_reaction(msg, index, length)
+            await self.get_search_entry_embed(ctx, msg, data, search, name, index, length)
+            index = await self.get_arrow_reaction(msg, index, length)
 
     async def get_search(self, ctx, data, name):
-        if await data.fetch_search(name):
-            await self.get_search_embed(ctx, data, name)
+        search = await data.fetch_search(name)
+        if search != None:
+            await self.get_search_embed(ctx, data, search, name)
 
-    @cog_ext.cog_slash(name="manga", guild_ids=eval(environ["GUILDS"]))
-    async def get_manga(self, ctx, name):
-        """Search for manga"""
-        await self.get_search(ctx, MangaData(), name)
-
-    @cog_ext.cog_slash(name="anime", guild_ids=eval(environ["GUILDS"]))
+    @cog_ext.cog_slash(name = "anime", guild_ids = eval(environ["GUILDS"]))
     async def get_anime(self, ctx, name):
         """Search for anime"""
-        await self.get_search(ctx, AnimeData(), name)
+        await self.get_search(ctx, self.anime, name)
+
+    @cog_ext.cog_slash(name = "manga", guild_ids = eval(environ["GUILDS"]))
+    async def get_manga(self, ctx, name):
+        """Search for manga"""
+        await self.get_search(ctx, self.manga, name)
 
 
     ########################## LIST COMMANDS ##########################
 
     async def get_list_entry_embed(self, ctx, msg, data, content, username, index, length):
         status = "watching_status" if "watching_status" in content[index] else "reading_status"
-        entry = data.get_element(content[index])
-        embed = discord.Embed(title = entry[0][0], color = data.get_status()[content[index][status]][1])
-        for i in range(1, len(entry[0])):
-            if status == "watching_status" and i == 7:
-                continue
-            embed.add_field(name=data.get_header()[i], value=entry[0][i] if entry[0][i] != "" else "N/A")
-        embed.add_field(name="‎", value="[MyAnimeList link]({})".format(entry[1]), inline=False)
-        embed.set_image(url=entry[2])
-        embed.set_footer(text="{}'s {} list: Entry {} of {}".format(username.capitalize(), data.get_info()["type"], index+1, length), icon_url = ctx.author.avatar_url)
-        await msg.edit(embed=embed)
+        entry = data.get_list_entry(content[index])
+        embed = await self.create_embed(entry["Title"], entry["Data"], url = entry["URL"], colour = entry["Colour"], image = entry["Image"])
+        embed.set_footer(text = "{}'s {} list: Entry {} of {}".format(username.capitalize(), data.get_info()["type"], index+1, length), icon_url = ctx.author.avatar_url)
+        await msg.edit(embed = embed)
 
-    async def get_list_embed(self, ctx, data, username):      
-        table = data.get_table()
+    async def get_list_embed(self, ctx, data, content, username):
         msg = await self.get_empty_embed(ctx, True)
         index = 0
-        length = len(table)
+        length = len(content)
         while True:
-            await self.get_list_entry_embed(ctx, msg, data, table, username, index, length)
-            index = await self.get_reaction(msg, index, length)
+            await self.get_list_entry_embed(ctx, msg, data, content, username, index, length)
+            index = await self.get_arrow_reaction(msg, index, length)
 
     async def get_list(self, ctx, data, username):
-        """Send embed anime list"""
-        if await data.fetch_list(username):
-            await self.get_list_embed(ctx, data, username)
+        """Send username's list"""
+        content = await data.fetch_list(username)
+        if content != None:
+            await self.get_list_embed(ctx, data, content, username)
 
-    @cog_ext.cog_slash(name="animelist", guild_ids=eval(environ["GUILDS"]))
+    @cog_ext.cog_slash(name = "animelist", guild_ids = eval(environ["GUILDS"]))
     async def get_anime_list(self, ctx, username):
         """Send username's anime list"""
-        await self.get_list(ctx, AnimeData(), username)
+        await self.get_list(ctx, self.anime, username)
 
-    @cog_ext.cog_slash(name="mangalist", guild_ids=eval(environ["GUILDS"]))
+    @cog_ext.cog_slash(name = "mangalist", guild_ids = eval(environ["GUILDS"]))
     async def get_manga_list(self, ctx, username):
         """Show username's manga list"""
-        await self.get_list(ctx, MangaData(), username)
+        await self.get_list(ctx, self.manga, username)
     
 
     ########################## CHARACTER COMMAND ##########################
 
     async def get_character_pic_embed(self, ctx, embed, msg, pics, index, length):
-        embed.set_image(url=pics[index])
-        embed.set_footer(text="Picture {} of {}".format(index+1, length), icon_url = ctx.author.avatar_url)
-        await msg.edit(embed=embed)
+        embed.set_image(url = pics[index])
+        embed.set_footer(text = "Image {} of {}".format(index+1, length), icon_url = ctx.author.avatar_url)
+        await msg.edit(embed = embed)
 
-    async def get_character_embed(self, ctx, msg, character, pics):
-        def get_nicknames(nicknames):
-            res = ""
-            if nicknames == []:
-                return "N/A"
-            for el in nicknames:
-                res += el + ", "
-            return res[:-2]
-
-        def get_about(character):
-            res = ""
-            for el in character["about"].split("."):
-                el += ". "
-                if len(res) + len(el) > 1025:
-                    return res[:-2]
-                res += el
-            return res[:-2] if res != "" else "N/A"
-
-        embed = discord.Embed(title = character["name"], color = 0x26448f)
-        embed.add_field(name="Nickname", value=get_nicknames(character["nicknames"]))
-        embed.add_field(name="Favourites", value=character["favorites"])
-        embed.add_field(name="About", value=get_about(character), inline=False)
-        embed.add_field(name="‎", value="[MyAnimeList link]({})".format(character["url"]), inline=False)
-        await msg.edit(embed=embed)
+    async def get_character_embed(self, ctx, msg, character):
+        embed = await self.create_embed(character["Name"], character["Data"])
+        embed.add_field(name = "About", value = character["About"], inline = False)
+        embed.add_field(name = "‎", value = "[MyAnimeList link]({})".format(character["URL"]), inline = False)
+        await msg.edit(embed = embed)
         await msg.add_reaction("⬅")
         await msg.add_reaction("➡")
         index = 0
+        pics = await self.character.get_images(character)
         length = len(pics)
         while True:
             await self.get_character_pic_embed(ctx, embed, msg, pics, index, length)
-            index = await self.get_reaction(msg, index, length)
-
-    async def get_character(self, ctx, msg, character):
-        (b, r) = await make_request("https://api.jikan.moe/v4/characters/{}/pictures".format(character["mal_id"]))
-        if not b:
-            return
-        pics = [pic["jpg"]["image_url"] for pic in json.loads(r.content)["data"]]
-        main = character["images"]["jpg"]["image_url"]
-        try:
-            pics.remove(main)
-        except:
-            pass
-        pics = [main] + pics
-        await self.get_character_embed(ctx, msg, character, pics)
+            index = await self.get_arrow_reaction(msg, index, length)
 
     async def get_character_list_embed(self, ctx, characters, length):
         def check(reaction, user):
-            return reaction.emoji in emojis and reaction.message.id == msg.id and user != self.bot.user
+            return reaction.emoji in emojis[:length] and reaction.message.id == msg.id and user != self.bot.user
+        # This list is ugly but I don't know any better haha
         emojis = [u"\u0030" + u"\u20E3", u"\u0031" + u"\u20E3", u"\u0032" + u"\u20E3", u"\u0033" + u"\u20E3", u"\u0034" + u"\u20E3",
                   u"\u0035" + u"\u20E3", u"\u0036" + u"\u20E3", u"\u0037" + u"\u20E3", u"\u0038" + u"\u20E3", u"\u0039" + u"\u20E3"]
         embed = discord.Embed(title = "React with the number of the character of your choice:", color = 0x26448f)
         for i in range(length):
-            embed.add_field(name="Option {}".format(i), value=characters[i]["name"], inline = False)
-        embed.set_footer(text="If you can't find the character you want, try a more specific search!", icon_url = ctx.author.avatar_url)
-        msg = await ctx.send(embed=embed)
+            embed.add_field(name = "Option {}".format(i), value = characters[i]["name"], inline = False)
+        embed.set_footer(text = "If you can't find the character you want, try a more specific search!", icon_url = ctx.author.avatar_url)
+        msg = await ctx.send(embed = embed)
         for i in range(length):
             await msg.add_reaction(emojis[i])
-        reaction, user = await self.bot.wait_for('reaction_add', check=check)
+        reaction, user = await self.bot.wait_for('reaction_add', check = check)
         await msg.clear_reactions()
         return msg, emojis.index(reaction.emoji)
 
-    @cog_ext.cog_slash(name="character", guild_ids=eval(environ["GUILDS"]))
+    @cog_ext.cog_slash(name = "character", guild_ids = eval(environ["GUILDS"]))
     async def get_character_list(self, ctx, name):
         """Search for anime/manga character"""
-        (b, r) = await make_request("https://api.jikan.moe/v4/characters?q={}&order_by=favorites&sort=desc".format(name))
-        if not b:
+        characters = await make_request("https://api.jikan.moe/v4/characters?q={}&order_by=favorites&sort=desc".format(name))
+        if characters == None:
             return
-        characters = json.loads(r.content)["data"]
-        length = min(10,len(characters))
-        if length == 0:
+        length = min(10, len(characters))
+        if length == 0: # No character found
             return
-        elif length == 1:
+        elif length == 1: # Only one character found: Show it directly
             msg = await self.get_empty_embed(ctx, False)
             character = characters[0]
-        else:
+        else: # More than a character found: Show 10 most popular, ask to choose via reaction
             msg, index = await self.get_character_list_embed(ctx, characters[:length], length)
             character = characters[index]
-        await self.get_character(ctx, msg, character)
+        await self.get_character_embed(ctx, msg, await self.character.get_character_data(character))
+
 
     ########################## USER COMMAND ##########################
 
-    async def get_user_page_embed(self, ctx, msg, data, index, length):
-        def get_colour(gender):
-            if gender == "Male":
-                return 0x26448f
-            elif gender == "Female":
-                return 0xff8da1
-            return 0xffbf00
-        entry = data[index]
+    async def get_user_page_embed(self, ctx, msg, user, anime, manga, index, length):
+        data = (user, anime, manga)
         options = ["user info", "anime data", "manga data"]
-        embed = discord.Embed(title = "{}'s {}".format(data[0][0], options[index]), color = get_colour(data[0][1]["Gender"]))
-        lst = entry[1] if index == 0 else entry
-        for key in lst:
-            embed.add_field(name=key, value=lst[key] if lst[key] != None else "N/A")
-        embed.add_field(name="‎", value="[MyAnimeList link]({})".format(data[0][2]), inline=False)
-        if data[0][3] != None:
-            embed.set_image(url=data[0][3])
-        embed.set_footer(text="Click left for {}\nClick right for {}".format(options[(index-1)%length], options[(index+1)%length]), icon_url = ctx.author.avatar_url)
-        await msg.edit(embed=embed)
+        entry = data[index]
+        embed = await self.create_embed("{}'s {}".format(user["Name"], options[index]), entry["Data"], url = user["URL"], colour = user["Colour"], image = user["Image"])
+        embed.set_footer(text = "Click left for {}\nClick right for {}".format(options[(index-1)%length], options[(index+1)%length]), icon_url = ctx.author.avatar_url)
+        await msg.edit(embed = embed)
 
     async def get_user_embed(self, ctx, user, anime, manga):    
-        data = (user, anime, manga)
         msg = await self.get_empty_embed(ctx, True)
         index = 0
-        length = len(data)
+        length = 3
         while True:
-            await self.get_user_page_embed(ctx, msg, data, index, length)
-            index = await self.get_reaction(msg, index, length)
+            await self.get_user_page_embed(ctx, msg, user, anime, manga, index, length)
+            index = await self.get_arrow_reaction(msg, index, length)
 
-    @cog_ext.cog_slash(name="user", guild_ids=eval(environ["GUILDS"]))
+    @cog_ext.cog_slash(name = "user", guild_ids = eval(environ["GUILDS"]))
     async def get_user(self, ctx, username):
-        (b, r) = await make_request("https://api.jikan.moe/v4/users/{}".format(username))
-        if not b:
+        user = await make_request("https://api.jikan.moe/v4/users/{}".format(username))
+        if user in (None, []):
             return
-        user = json.loads(r.content)["data"]
-        if user == []:
-            return
-        (b, r) = await make_request("https://api.jikan.moe/v4/users/{}/statistics".format(username))
-        if not b:
-            return
-        user = (user["username"], 
-                {"Gender": user["gender"],
-                 "Last online": datetime.strptime(user["last_online"], "%Y-%m-%dT%H:%M:%S%z") if user["last_online"] != None else None,
-                 "Birthday": datetime.strptime(user["birthday"], "%Y-%m-%dT%H:%M:%S%z").date() if user["birthday"] != None else None,
-                 "Joined": datetime.strptime(user["joined"], "%Y-%m-%dT%H:%M:%S%z").date() if user["joined"] != None else None,
-                 "Location": user["location"]},
-                user["url"],
-                user["images"]["jpg"]["image_url"])
-        anime = json.loads(r.content)["data"]["anime"]
-        anime = {"Total entries": anime["total_entries"],
-                 "Eps. watched": anime["episodes_watched"],
-                 "Days watched": anime["days_watched"],
-                 "Mean score": anime["mean_score"],
-                 "Watching": anime["watching"],
-                 "Completed": anime["completed"],
-                 "On hold": anime["on_hold"],
-                 "Dropped": anime["dropped"],
-                 "Plan to Watch": anime["plan_to_watch"],
-                 "Rewatched": anime["rewatched"]}
-        manga = json.loads(r.content)["data"]["manga"]
-        manga = {"Total entries": manga["total_entries"],
-                 "Chaps. read": manga["chapters_read"],
-                 "Vols. read": manga["volumes_read"],
-                 "Days read": manga["days_read"],
-                 "Mean score": manga["mean_score"],
-                 "Reading": manga["reading"],
-                 "Completed": manga["completed"],
-                 "On hold": manga["on_hold"],
-                 "Dropped": manga["dropped"],
-                 "Plan to Read": manga["plan_to_read"],
-                 "Reread": manga["reread"]}
-        await self.get_user_embed(ctx, user, anime, manga)
+        user_data = await make_request("https://api.jikan.moe/v4/users/{}/statistics".format(username))
+        if user_data != None:
+            await self.get_user_embed(ctx,
+                                      self.user.get_user_data(user),
+                                      self.anime.get_stats(user_data["anime"]),
+                                      self.manga.get_stats(user_data["manga"]))
 
 def setup(bot: Bot):
     bot.add_cog(Embed(bot))

@@ -8,8 +8,8 @@ load_dotenv()
 
 extensions = ["cogs.Events", "cogs.CSV", "cogs.Embed"]
 
-client = Bot(command_prefix="k!", self_bot=True, intents=Intents.all())
-slash = SlashCommand(client, sync_commands=True)
+client = Bot(command_prefix = "k!", self_bot = True, intents = Intents.all())
+slash = SlashCommand(client, sync_commands = True)
 
 for ext in extensions:
     client.load_extension(ext)
