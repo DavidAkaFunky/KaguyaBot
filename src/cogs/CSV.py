@@ -1,5 +1,5 @@
 import discord, csv
-from Data_classes import AnimeData, MangaData
+from DataClasses import AnimeData, MangaData
 from discord.ext.commands import Cog, Bot
 from os import remove, environ
 from discord_slash import cog_ext, SlashContext
