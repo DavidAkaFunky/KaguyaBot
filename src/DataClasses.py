@@ -63,7 +63,8 @@ class AnimeData(Data):
                 self.get_genres(entry["anime"])]
     
     def get_list_entry(self, entry):
-        season = self.get_season(entry["anime"]["season"], None, False)
+        year = self.get_value(entry["anime"]["year"], "N/A")
+        season = self.get_season(entry["anime"]["season"], year, False)
         status = self.status[entry["watching_status"]]
         return {"Title": entry["anime"]["title"],
                 "Colour": self.colour[status],
