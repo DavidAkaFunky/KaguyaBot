@@ -29,7 +29,7 @@ class Data(ABC):
         genres = ""
         for genre in entry["genres"]:
             genres += genre["name"] + ", "
-        return genres[:-2]
+        return genres[:-2] if genres != "" else "N/A"
 
     def get_value(self, value, alt):
         return value if value not in (None, 0) else alt

@@ -54,6 +54,7 @@ class Embed (Cog):
         entry = data.get_search_entry(content[index])
         embed = await self.create_embed(entry["Title"], entry["Data"], url = entry["URL"], colour = entry["Colour"], image = entry["Image"])
         embed.set_footer(text = "Search result {} of {}".format(index+1, length), icon_url = ctx.author.avatar_url)
+        print(embed.to_dict())
         await msg.edit(embed = embed)
 
     async def get_search_embed(self, ctx, data, search, name):    
