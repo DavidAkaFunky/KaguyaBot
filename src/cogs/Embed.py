@@ -69,7 +69,7 @@ class Embed (Cog):
                 break
 
     async def get_search(self, ctx, data, name):
-        search = await data.fetch_search(name)
+        search = await data.fetch_search(ctx, name)
         if search != None:
             await self.get_search_embed(ctx, data, search, name)
 
@@ -106,7 +106,7 @@ class Embed (Cog):
 
     async def get_list(self, ctx, data, username):
         """Send username's list"""
-        content = await data.fetch_list(username)
+        content = await data.fetch_list(ctx, username)
         if content != None:
             await self.get_list_embed(ctx, data, content, username)
 
@@ -136,7 +136,7 @@ class Embed (Cog):
         await msg.add_reaction("⬅")
         await msg.add_reaction("➡")
         index = 0
-        pics = await self.character.get_images(character)
+        pics = await self.character.get_images(ctx, character)
         length = len(pics)
         while True:
             try:
@@ -165,7 +165,7 @@ class Embed (Cog):
     @cog_ext.cog_slash(name = "character", guild_ids = eval(environ["GUILDS"]))
     async def get_character_list(self, ctx, name):
         """Search for anime/manga character"""
-        characters = await make_request("https://api.jikan.moe/v4/characters?q={}&order_by=favorites&sort=desc".format(name))
+        characters = await make_request(ctx, "https://api.jikan.moe/v4/characters?q={}&order_by=favorites&sort=desc".format(name))
         if characters == None:
             return
         length = min(10, len(characters))
@@ -203,10 +203,10 @@ class Embed (Cog):
 
     @cog_ext.cog_slash(name = "user", guild_ids = eval(environ["GUILDS"]))
     async def get_user(self, ctx, username):
-        user = await make_request("https://api.jikan.moe/v4/users/{}".format(username))
+        user = await make_request(ctx, "https://api.jikan.moe/v4/users/{}".format(username))
         if user in (None, []):
             return
-        user_data = await make_request("https://api.jikan.moe/v4/users/{}/statistics".format(username))
+        user_data = await make_request(ctx, "https://api.jikan.moe/v4/users/{}/statistics".format(username))
         if user_data != None:
             await self.get_user_embed(ctx,
                                       self.user.get_user_data(user),

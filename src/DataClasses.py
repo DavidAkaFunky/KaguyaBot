@@ -4,14 +4,14 @@ from datetime import datetime
 
 class Data(ABC):
 
-    async def fetch_search(self, name) -> bool:
-        return await make_request("https://api.jikan.moe/v4/{}?q={}&sfw&order_by=popularity".format(self.info["type"], name))
+    async def fetch_search(self, ctx, name) -> bool:
+        return await make_request(ctx, "https://api.jikan.moe/v4/{}?q={}&sfw&order_by=popularity".format(self.info["type"], name))
 
-    async def fetch_list(self, username):
+    async def fetch_list(self, ctx, username):
         table = []
         i = 1
         while True:
-            page = await make_request("https://api.jikan.moe/v4/users/{}/{}?page={}".format(username, self.info["list"], i))
+            page = await make_request(ctx, "https://api.jikan.moe/v4/users/{}/{}?page={}".format(username, self.info["list"], i))
             if page == None:
                 return None
             table += page
@@ -209,8 +209,8 @@ class Character():
             res += el
         return res[:-2] if res != "" else "N/A"
 
-    async def get_images(self, character):
-        imgs = await make_request("https://api.jikan.moe/v4/characters/{}/pictures".format(character["MAL_ID"]))
+    async def get_images(self, ctx, character):
+        imgs = await make_request(ctx, "https://api.jikan.moe/v4/characters/{}/pictures".format(character["MAL_ID"]))
         if imgs == None:
             return
         imgs = [img["jpg"]["image_url"] for img in imgs]
