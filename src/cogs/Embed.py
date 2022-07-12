@@ -61,8 +61,11 @@ class Embed (Cog):
         index = 0
         length = len(search)
         while True:
-            await self.get_search_entry_embed(ctx, msg, data, search, name, index, length)
-            index = await self.get_arrow_reaction(msg, index, length)
+            try:
+                await self.get_search_entry_embed(ctx, msg, data, search, name, index, length)
+                index = await self.get_arrow_reaction(msg, index, length)
+            except asyncio.TimeoutError:
+                break
 
     async def get_search(self, ctx, data, name):
         search = await data.fetch_search(name)
@@ -94,8 +97,11 @@ class Embed (Cog):
         index = 0
         length = len(content)
         while True:
-            await self.get_list_entry_embed(ctx, msg, data, content, username, index, length)
-            index = await self.get_arrow_reaction(msg, index, length)
+            try:
+                await self.get_list_entry_embed(ctx, msg, data, content, username, index, length)
+                index = await self.get_arrow_reaction(msg, index, length)
+            except asyncio.TimeoutError:
+                break
 
     async def get_list(self, ctx, data, username):
         """Send username's list"""
@@ -132,8 +138,11 @@ class Embed (Cog):
         pics = await self.character.get_images(character)
         length = len(pics)
         while True:
-            await self.get_character_pic_embed(ctx, embed, msg, pics, index, length)
-            index = await self.get_arrow_reaction(msg, index, length)
+            try:
+                await self.get_character_pic_embed(ctx, embed, msg, pics, index, length)
+                index = await self.get_arrow_reaction(msg, index, length)
+            except asyncio.TimeoutError:
+                break
 
     async def get_character_list_embed(self, ctx, characters, length):
         def check(reaction, user):
@@ -185,8 +194,11 @@ class Embed (Cog):
         index = 0
         length = 3
         while True:
-            await self.get_user_page_embed(ctx, msg, user, anime, manga, index, length)
-            index = await self.get_arrow_reaction(msg, index, length)
+            try:
+                await self.get_user_page_embed(ctx, msg, user, anime, manga, index, length)
+                index = await self.get_arrow_reaction(msg, index, length)
+            except asyncio.TimeoutError:
+                break
 
     @cog_ext.cog_slash(name = "user", guild_ids = eval(environ["GUILDS"]))
     async def get_user(self, ctx, username):
