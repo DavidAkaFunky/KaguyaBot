@@ -1,4 +1,4 @@
-import discord
+import discord, asyncio
 from DataClasses import AnimeData, MangaData, User, Character
 from discord.ext.commands import Cog, Bot
 from os import environ
@@ -7,7 +7,7 @@ from Requests import make_request
 
 class Embed (Cog):
 
-    def __init__(self,bot):
+    def __init__(self, bot):
         self.bot = bot
         self.anime = AnimeData()
         self.manga = MangaData()
