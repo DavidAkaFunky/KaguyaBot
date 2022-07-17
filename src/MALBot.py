@@ -6,7 +6,7 @@ from discord_slash import SlashCommand
 
 load_dotenv()
 
-extensions = ["cogs.Events", "cogs.CSV", "cogs.Embed"]
+extensions = ["cogs.Events", "cogs.MAL", "cogs.Genshin"]
 
 client = Bot(command_prefix = "k!", self_bot = True, intents = Intents.all())
 slash = SlashCommand(client, sync_commands = True)

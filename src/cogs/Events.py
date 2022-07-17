@@ -9,7 +9,7 @@ class Events (commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="Kaguya-sama wa Kokurasetai: Tensai-tachi no Renai Zunousen"))
+        await self.bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name="Kaguya-sama wa Kokurasetai: Ultra Romantic"))
         print("I've joined, my username is {0.user}!".format(self.bot))
 
     @commands.Cog.listener()

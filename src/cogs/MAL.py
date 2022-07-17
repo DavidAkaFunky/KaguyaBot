@@ -1,11 +1,11 @@
-import discord, asyncio
+import discord, asyncio, Embed
 from DataClasses import AnimeData, MangaData, User, Character
 from discord.ext.commands import Cog, Bot
 from os import environ
 from discord_slash import cog_ext
 from Requests import make_request
 
-class Embed (Cog):
+class MAL (Cog):
 
     def __init__(self, bot):
         self.bot = bot
@@ -14,57 +14,23 @@ class Embed (Cog):
         self.user = User()
         self.character = Character()
 
-
-    ########################## MISCELLANEOUS ##########################
-
-    async def get_empty_embed(self, ctx, arrow_flag):
-        embed = discord.Embed(title = "‎")
-        msg = await ctx.send(embed = embed)
-        if arrow_flag:
-            await msg.add_reaction("⬅")
-            await msg.add_reaction("➡")
-        return msg
-
-    async def get_arrow_reaction(self, msg, index, length):
-        def check(reaction, user):
-            return str(reaction.emoji) in ["⬅", "➡"] and reaction.message.id == msg.id and user != self.bot.user
-        reaction, user = await self.bot.wait_for('reaction_add', check = check)
-        if str(reaction.emoji) == "➡":
-            index = (index + 1) % length
-            await msg.remove_reaction("➡", user)
-        elif str(reaction.emoji) == "⬅":
-            index = (index - 1) % length
-            await msg.remove_reaction("⬅", user)
-        return index
-    
-    async def create_embed(self, title, data, url = None, colour = 0x26448f, image = None):
-        embed = discord.Embed(title = title, color = colour)
-        for key in data:
-            embed.add_field(name = key, value = data[key])
-        if url != None:
-            embed.add_field(name = "‎", value = "[MyAnimeList link]({})".format(url), inline = False)
-        if image != None:
-            embed.set_image(url = image)
-        return embed
-
-
     ########################## INDIVIDUAL ENTRY COMMANDS ##########################
 
     async def get_search_entry_embed(self, ctx, msg, data, content, name, index, length):
         entry = data.get_search_entry(content[index])
-        embed = await self.create_embed(entry["Title"], entry["Data"], url = entry["URL"], colour = entry["Colour"], image = entry["Image"])
+        url = entry["URL"]
+        embed = await Embed.create_embed(entry["Title"], entry["Data"], url = url, colour = entry["Colour"], image = entry["Image"], footer = "[MyAnimeList link]({})".format(url))
         embed.set_footer(text = "Search result {} of {}".format(index+1, length), icon_url = ctx.author.avatar_url)
-        print(embed.to_dict())
         await msg.edit(embed = embed)
 
     async def get_search_embed(self, ctx, data, search, name):    
-        msg = await self.get_empty_embed(ctx, True)
+        msg = await Embed.get_empty_embed(ctx, True)
         index = 0
         length = len(search)
         while True:
             try:
                 await self.get_search_entry_embed(ctx, msg, data, search, name, index, length)
-                index = await self.get_arrow_reaction(msg, index, length)
+                index = await Embed.get_arrow_reaction(msg, index, length, self.bot)
             except asyncio.TimeoutError:
                 break
 
@@ -89,18 +55,19 @@ class Embed (Cog):
     async def get_list_entry_embed(self, ctx, msg, data, content, username, index, length):
         status = "watching_status" if "watching_status" in content[index] else "reading_status"
         entry = data.get_list_entry(content[index])
-        embed = await self.create_embed(entry["Title"], entry["Data"], url = entry["URL"], colour = entry["Colour"], image = entry["Image"])
+        url = entry["URL"]
+        embed = await Embed.create_embed(entry["Title"], entry["Data"], url = url, colour = entry["Colour"], image = entry["Image"], footer = "[MyAnimeList link]({})".format(url))
         embed.set_footer(text = "{}'s {} list: Entry {} of {}".format(username.capitalize(), data.get_info()["type"], index+1, length), icon_url = ctx.author.avatar_url)
         await msg.edit(embed = embed)
 
     async def get_list_embed(self, ctx, data, content, username):
-        msg = await self.get_empty_embed(ctx, True)
+        msg = await Embed.get_empty_embed(ctx, True)
         index = 0
         length = len(content)
         while True:
             try:
                 await self.get_list_entry_embed(ctx, msg, data, content, username, index, length)
-                index = await self.get_arrow_reaction(msg, index, length)
+                index = await Embed.get_arrow_reaction(msg, index, length, self.bot)
             except asyncio.TimeoutError:
                 break
 
@@ -129,7 +96,7 @@ class Embed (Cog):
         await msg.edit(embed = embed)
 
     async def get_character_embed(self, ctx, msg, character):
-        embed = await self.create_embed(character["Name"], character["Data"])
+        embed = await Embed.create_embed(character["Name"], character["Data"])
         embed.add_field(name = "About", value = character["About"], inline = False)
         embed.add_field(name = "‎", value = "[MyAnimeList link]({})".format(character["URL"]), inline = False)
         await msg.edit(embed = embed)
@@ -141,7 +108,7 @@ class Embed (Cog):
         while True:
             try:
                 await self.get_character_pic_embed(ctx, embed, msg, pics, index, length)
-                index = await self.get_arrow_reaction(msg, index, length)
+                index = await Embed.get_arrow_reaction(msg, index, length, self.bot)
             except asyncio.TimeoutError:
                 break
 
@@ -172,7 +139,7 @@ class Embed (Cog):
         if length == 0: # No character found
             return
         elif length == 1: # Only one character found: Show it directly
-            msg = await self.get_empty_embed(ctx, False)
+            msg = await Embed.get_empty_embed(ctx, False)
             character = characters[0]
         else: # More than a character found: Show 10 most popular, ask to choose via reaction
             msg, index = await self.get_character_list_embed(ctx, characters[:length], length)
@@ -186,18 +153,19 @@ class Embed (Cog):
         data = (user, anime, manga)
         options = ["user info", "anime data", "manga data"]
         entry = data[index]
-        embed = await self.create_embed("{}'s {}".format(user["Name"], options[index]), entry["Data"], url = user["URL"], colour = user["Colour"], image = user["Image"])
+        url = user["URL"]
+        embed = await Embed.create_embed("{}'s {}".format(user["Name"], options[index]), entry["Data"], url = url, colour = user["Colour"], image = user["Image"], footer = "[MyAnimeList link]({})".format(url))
         embed.set_footer(text = "Click left for {}\nClick right for {}".format(options[(index-1)%length], options[(index+1)%length]), icon_url = ctx.author.avatar_url)
         await msg.edit(embed = embed)
 
     async def get_user_embed(self, ctx, user, anime, manga):    
-        msg = await self.get_empty_embed(ctx, True)
+        msg = await Embed.get_empty_embed(ctx, True)
         index = 0
         length = 3
         while True:
             try:
                 await self.get_user_page_embed(ctx, msg, user, anime, manga, index, length)
-                index = await self.get_arrow_reaction(msg, index, length)
+                index = await Embed.get_arrow_reaction(msg, index, length, self.bot)
             except asyncio.TimeoutError:
                 break
 
@@ -213,5 +181,15 @@ class Embed (Cog):
                                       self.anime.get_stats(user_data["anime"]),
                                       self.manga.get_stats(user_data["manga"]))
 
+    ########################## WRITE TO CSV ##########################
+
+    @cog_ext.cog_slash(name = "animecsv", guild_ids = eval(environ["GUILDS"]))
+    async def get_anime_csv(self, ctx, username):
+        await self.get_csv(ctx, username, self.anime)
+
+    @cog_ext.cog_slash(name = "mangacsv", guild_ids = eval(environ["GUILDS"]))
+    async def get_manga_csv(self, ctx, username):
+        await self.get_csv(ctx, username, self.manga)
+
 def setup(bot: Bot):
-    bot.add_cog(Embed(bot))
+    bot.add_cog(MAL(bot))

@@ -1,7 +1,7 @@
 import requests, json
 from time import sleep
 
-async def make_request(url):
+async def make_request(ctx, url):
     for i in range(3):
         try:
             r = requests.get(url, timeout = 6)
