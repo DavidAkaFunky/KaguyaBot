@@ -1,2 +1,2 @@
-# MALBot
-MyAnimeList bot
+# KaguyaBot
+MyAnimeList and Genshin Impact bot
